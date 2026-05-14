@@ -12,7 +12,7 @@ def processKMLData(filename):
     total_area_in_tot = 0
     total_area_out_tot = 0
     with kmz.open('doc.kml') as kml_obj:  # Extract KMZ and save as KML
-        soup = BeautifulSoup(kml_obj, 'html.parser')
+        soup = BeautifulSoup(kml_obj, 'xml')
     zPlaceMarks = getname_tags(soup, "Placemark|PlaceMark|placemark")
     print(filename)
     # Loop through each Placemark
@@ -27,12 +27,10 @@ def processKMLData(filename):
         # Get the multigeometry including both inner and outer boundaries if necessary
         # geo = str(xdata.find('multigeometry'))
         # print(geo)
-        total_area_in = kml_getpolyinout(placemark=xdata, placemark_name=placemark_name, boundary='innerboundaryis')
-        total_area_out = kml_getpolyinout(placemark=xdata, placemark_name=placemark_name, boundary='outerboundaryis')
+        total_area_in = kml_getpolyinout(placemark=xdata, placemark_name=placemark_name, boundary='innerBoundaryIs|innerboundaryis')
+        total_area_out = kml_getpolyinout(placemark=xdata, placemark_name=placemark_name, boundary='outerBoundaryIs|outerboundaryis')
         
-        out_val = total_area_out if total_area_out is not None else 0
-        in_val = total_area_in if total_area_in is not None else 0
-        total_area += (out_val - in_val)
+        total_area += (total_area_out - total_area_in)
 
     return total_area
 
@@ -40,13 +38,14 @@ def processKMLData(filename):
 def kml_getpolyinout(placemark, placemark_name, boundary):
     total_area = 0
     zBoundary = getname_tags(placemark, boundary)
-    if zBoundary != []:
+    if zBoundary:
         for j in range(0, len(zBoundary)):
             zPaths = getname_tags(zBoundary[j], 'coordinates')  # Strip out the coordinates
+            area_km2 = 0
             if len(zPaths) > 0:
                 area_km2 = output_poly(placemark_name, zPaths)
             total_area += area_km2
-        return total_area
+    return total_area
 
 
 def getname_tags(obj, keywords):
@@ -61,15 +60,14 @@ def getname_tags(obj, keywords):
 def output_poly(Pt_Name, line):
     vertices = str(line).split(' ')
     vertices = ArrayNotEmptyZ(vertices)
+    area_km2 = 0
     if len(vertices) > 0:
-        # print(Pt_Name, vertices)
         area_km2 = calculate_polygon(vertices)
     return area_km2
 
 
 def ArrayNotEmptyZ(InArray):
     OArray = []
-    s = ""
     for i in range(0, len(InArray)):
         s = ztrim(InArray[i])
         if len(s) > 1:
@@ -78,34 +76,30 @@ def ArrayNotEmptyZ(InArray):
 
 
 def ztrim(s):
-    # non_decimal = re.compile(r'[^\d.]+')
-    # s = non_decimal.sub('', s)
-    # s = re.sub("[^0-9^.]", "", s)
     s = re.sub("[^0-9,.-]", "", s)  # strip all nonnumeric characters from string except comma and dot
-    return s.replace("/^\s+|\s+$/g", "")
+    return s.strip()
 
 
 def calculate_polygon(vertices):
-    # total_area = 0
-    # Convert coordinate vertices (String) into list of floats
     newlist = []
-    num_words = 1
     for coords in vertices:
-        # print("Coordinate Set {} in {} Vertices: {}".format(num_words, len(vertices), coords))
         split_coords = coords.split(',')[:2]
         new_coords = []
         for item in split_coords:
-            # Some values contain exponents
             new_coords.append(float(item))
         newlist.append(new_coords)
-        num_words += 1
+    
+    # Polygon must be closed (last point == first point) for the area library
+    if len(newlist) > 2 and newlist[0] != newlist[-1]:
+        newlist.append(newlist[0])
+
     obj = {'type': 'Polygon',
            'coordinates': [newlist]}
-    area_m2 = area(obj)
-    area_km2 = area_m2 / 1e+6
-    # print('AREA = {} m^2'.format(area_m2))
-    # print('AREA = {} km^2'.format(area_km2))
-    # total_area = total_area + area_km2
+    try:
+        area_m2 = area(obj)
+        area_km2 = area_m2 / 1e+6
+    except:
+        area_km2 = 0
     return area_km2
 
 

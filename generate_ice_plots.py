@@ -15,6 +15,11 @@ def generate_plots():
     files.sort()
 
     print(f"Processing {len(files)} files...")
+    
+    # Initialize CSV with header
+    with open("antarctic_areas_2011.csv", "w") as f:
+        f.write("Day,Area_km2\n")
+
     for filename in tqdm(files):
         filepath = os.path.join(data_dir, filename)
         try:
@@ -22,12 +27,16 @@ def generate_plots():
             # Extract day from filename antarctic_2011XXX.kmz
             day_str = filename.replace("antarctic_2011", "").replace(".kmz", "")
             day = int(day_str)
+            
+            # Save result immediately
+            with open("antarctic_areas_2011.csv", "a") as f:
+                f.write(f"{day},{area_km2}\n")
+            
             results.append({"Day": day, "Area_km2": area_km2})
         except Exception as e:
             print(f"Error processing {filename}: {e}")
 
     df = pd.DataFrame(results)
-    df.to_csv("antarctic_areas_2011.csv", index=False)
     
     # Plotting
     plt.figure(figsize=(12, 6))
