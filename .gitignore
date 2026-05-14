@@ -1,0 +1,9 @@
+antarctic/**/*.kmz
+__pycache__/
+*.csv
+*.png
+!README.md
+!processKMLData.py
+!generate_ice_plots.py
+!antarctic_ice_multi_year_comparison.png
+!antarctic_areas_master.csv
