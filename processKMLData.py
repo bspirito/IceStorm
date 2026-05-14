@@ -29,10 +29,10 @@ def processKMLData(filename):
         # print(geo)
         total_area_in = kml_getpolyinout(placemark=xdata, placemark_name=placemark_name, boundary='innerboundaryis')
         total_area_out = kml_getpolyinout(placemark=xdata, placemark_name=placemark_name, boundary='outerboundaryis')
-        if total_area_in == None:
-            total_area += total_area_out
-        if total_area_out == None:
-            total_area += total_area_in
+        
+        out_val = total_area_out if total_area_out is not None else 0
+        in_val = total_area_in if total_area_in is not None else 0
+        total_area += (out_val - in_val)
 
     return total_area
 
@@ -96,7 +96,6 @@ def calculate_polygon(vertices):
         new_coords = []
         for item in split_coords:
             # Some values contain exponents
-            item = f'{item:.16}'
             new_coords.append(float(item))
         newlist.append(new_coords)
         num_words += 1
